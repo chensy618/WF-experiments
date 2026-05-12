@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+title: NVIDIA Earth2Studio
+authors:
+  - name: "Earth2Studio Contributors"
+url: https://github.com/NVIDIA/earth2studio
+repository-code: https://github.com/NVIDIA/earth2studio
+date-released: 2024-04-22
