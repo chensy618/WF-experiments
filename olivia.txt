@@ -14,3 +14,7 @@ source /cluster/projects/nn8106k/siyan/envs/earth2studio/bin/activate
 
 load environment:
 source ~/load_earth2studio.sh
+
+
+install dlwp
+pip install -e ".[dlwp]"

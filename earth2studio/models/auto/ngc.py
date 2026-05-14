@@ -142,7 +142,11 @@ class NGCModelFileSystem(HTTPFileSystem):
                 )
             self.model_api = ModelAPI(self.client)
         self.authenticated_api = authenticated_api
+        if client_kwargs is None:
+            client_kwargs = {}
 
+        client_kwargs["trust_env"] = True
+        
         super().__init__(
             simple_links,
             block_size,
@@ -258,7 +262,7 @@ class NGCModelFileSystem(HTTPFileSystem):
         """
         # Based on: ngc/apps/ngc-cli/-/blob/main/ngcbpc/ngcbpc/transfer/async_download.py?ref_type=heads#L782
         # Get the direct download URL
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(trust_env=True) as session:
             # Use http filesystem encode URL
             dl_url_resp = await session.get(self.encode_url(asset_url), headers=headers)
             status = dl_url_resp.status
