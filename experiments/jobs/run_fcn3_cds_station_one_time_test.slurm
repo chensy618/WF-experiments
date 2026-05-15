@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --account=nn8106k
 #SBATCH --partition=accel
-#SBATCH --job-name=fcn3_cds_station
-#SBATCH --time=48:00:00
-#SBATCH --mem=96G
+#SBATCH --job-name=fcn3_cds_onetime
+#SBATCH --time=02:00:00
+#SBATCH --mem=192G
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=4
 #SBATCH --output=experiments/jobs/.out/%x_%j.out
@@ -12,7 +12,7 @@
 set -euo pipefail
 
 echo "============================================================"
-echo "Starting FCN3 CDS ERA5 station wind prediction"
+echo "Running FCN3 + CDS station wind one-time test"
 echo "Job ID: ${SLURM_JOB_ID}"
 echo "Node: $(hostname)"
 echo "Time: $(date)"
@@ -38,33 +38,16 @@ export EARTH2STUDIO_MODEL_CACHE=/cluster/projects/nn8106k/siyan/earth2studio_cac
 
 mkdir -p "$EARTH2STUDIO_DATA_CACHE"
 mkdir -p "$EARTH2STUDIO_MODEL_CACHE"
-mkdir -p experiments/outputs
+mkdir -p /cluster/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_onetime
 mkdir -p experiments/jobs/.out experiments/jobs/.err
 
-echo "Python:"
-which python
-python --version
-
-echo "CUDA:"
-which nvcc
-nvcc --version
-
-echo "Checking CDS API config:"
-if [ -f "$HOME/.cdsapirc" ]; then
-    echo "~/.cdsapirc found"
-else
-    echo "WARNING: ~/.cdsapirc not found"
-fi
-
-echo "Running CDS ERA5 station wind script..."
-
-python experiments/scripts/run_fcn3_cds_era5_station_wind_2009_2012.py \
+python -u experiments/scripts/run_fcn3_cds_era5_station_wind_2009_2012.py \
   --start "2009-01-01 00:00" \
-  --end "2012-12-31 18:00" \
+  --end "2009-01-01 00:00" \
   --nsteps 1 \
-  --output-dir experiments/outputs
+  --output-dir /cluster/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_onetime
 
 echo "============================================================"
-echo "Finished FCN3 CDS ERA5 station wind prediction"
+echo "Finished FCN3 + CDS station wind one-time test"
 echo "Time: $(date)"
 echo "============================================================"

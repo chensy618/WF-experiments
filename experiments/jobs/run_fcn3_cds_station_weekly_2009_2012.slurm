@@ -1,19 +1,21 @@
 #!/bin/bash
 #SBATCH --account=nn8106k
 #SBATCH --partition=accel
-#SBATCH --job-name=fcn3_station_wind
-#SBATCH --time=24:00:00
-#SBATCH --mem=96G
+#SBATCH --job-name=fcn3_cds_weekly
+#SBATCH --time=06:00:00
+#SBATCH --mem=192G
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=4
-#SBATCH --output=experiments/jobs/.out/%x_%j.out
-#SBATCH --error=experiments/jobs/.err/%x_%j.err
+#SBATCH --array=0-208%1
+#SBATCH --output=experiments/jobs/.out/%x_%A_%a.out
+#SBATCH --error=experiments/jobs/.err/%x_%A_%a.err
 
 set -euo pipefail
 
 echo "============================================================"
-echo "Starting FCN3 ERA5 station wind prediction"
-echo "Job ID: ${SLURM_JOB_ID}"
+echo "Running FCN3 + CDS station wind weekly job"
+echo "Array job ID: ${SLURM_ARRAY_JOB_ID}"
+echo "Array task ID: ${SLURM_ARRAY_TASK_ID}"
 echo "Node: $(hostname)"
 echo "Time: $(date)"
 echo "============================================================"
@@ -38,26 +40,30 @@ export EARTH2STUDIO_MODEL_CACHE=/cluster/projects/nn8106k/siyan/earth2studio_cac
 
 mkdir -p "$EARTH2STUDIO_DATA_CACHE"
 mkdir -p "$EARTH2STUDIO_MODEL_CACHE"
-mkdir -p experiments/outputs
+mkdir -p /cluster/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_weekly
 mkdir -p experiments/jobs/.out experiments/jobs/.err
 
-echo "Python:"
-which python
-python --version
+START_DATE="2009-01-01"
 
-echo "CUDA:"
-which nvcc
-nvcc --version
+WEEK_START=$(python - <<PY
+from datetime import datetime, timedelta
+start = datetime.strptime("${START_DATE}", "%Y-%m-%d")
+d = start + timedelta(days=7 * int("${SLURM_ARRAY_TASK_ID}"))
+print(d.strftime("%Y-%m-%d"))
+PY
+)
 
-echo "Running station wind script..."
+echo "Resolved week start:"
+echo "${WEEK_START}"
 
-python experiments/scripts/run_fcn3_era5_station_wind_2009_2012.py \
-  --start "2009-01-01 00:00" \
-  --end "2012-12-31 18:00" \
+python -u experiments/scripts/run_fcn3_cds_station_wind_one_week.py \
+  --start-date "${WEEK_START}" \
+  --days 7 \
   --nsteps 1 \
-  --output-dir experiments/outputs
+  --output-dir /cluster/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_weekly
 
 echo "============================================================"
-echo "Finished FCN3 ERA5 station wind prediction"
+echo "Finished weekly FCN3 + CDS station wind job"
+echo "Week start: ${WEEK_START}"
 echo "Time: $(date)"
 echo "============================================================"
