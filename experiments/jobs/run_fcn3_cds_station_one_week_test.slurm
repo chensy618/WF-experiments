@@ -32,20 +32,20 @@ export CUDA_HOME=${EBROOTCUDA:-$(dirname $(dirname $(which nvcc)))}
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:${LD_LIBRARY_PATH:-}
 
-export EARTH2STUDIO_CACHE=/cluster/projects/nn8106k/siyan/earth2studio_cache
-export EARTH2STUDIO_DATA_CACHE=/cluster/projects/nn8106k/siyan/earth2studio_cache/data
-export EARTH2STUDIO_MODEL_CACHE=/cluster/projects/nn8106k/siyan/earth2studio_cache/models
+export EARTH2STUDIO_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_cache
+export EARTH2STUDIO_DATA_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_cache/data
+export EARTH2STUDIO_MODEL_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_cache/models
 
 mkdir -p "$EARTH2STUDIO_DATA_CACHE"
 mkdir -p "$EARTH2STUDIO_MODEL_CACHE"
-mkdir -p /cluster/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_weekly_test
+mkdir -p /cluster/work/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_weekly_test
 mkdir -p experiments/jobs/.out experiments/jobs/.err
 
 python -u experiments/scripts/run_fcn3_cds_era5_station_wind_2009_2012.py \
   --start "2009-01-01 00:00" \
   --end "2009-01-07 18:00" \
   --nsteps 1 \
-  --output-dir /cluster/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_weekly_test
+  --output-dir /cluster/work/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_weekly_test
 
 echo "============================================================"
 echo "Finished FCN3 + CDS station wind one-week test"

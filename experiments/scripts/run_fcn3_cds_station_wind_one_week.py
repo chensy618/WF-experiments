@@ -16,7 +16,7 @@ def parse_args():
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="/cluster/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_weekly",
+        default="/cluster/work/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_weekly",
     )
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()

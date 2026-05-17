@@ -27,9 +27,9 @@ source /cluster/projects/nn8106k/siyan/envs/earth2studio-graphcast/bin/activate
 
 cd /cluster/home/siyan/github/WF-experiments
 
-export EARTH2STUDIO_CACHE=/cluster/projects/nn8106k/siyan/earth2studio_graphcast_cache
-export EARTH2STUDIO_DATA_CACHE=/cluster/projects/nn8106k/siyan/earth2studio_graphcast_cache/data
-export EARTH2STUDIO_MODEL_CACHE=/cluster/projects/nn8106k/siyan/earth2studio_graphcast_cache/models
+export EARTH2STUDIO_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_graphcast_cache
+export EARTH2STUDIO_DATA_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_graphcast_cache/data
+export EARTH2STUDIO_MODEL_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_graphcast_cache/models
 
 mkdir -p "$EARTH2STUDIO_DATA_CACHE"
 mkdir -p "$EARTH2STUDIO_MODEL_CACHE"

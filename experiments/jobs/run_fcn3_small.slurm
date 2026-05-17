@@ -32,9 +32,9 @@ export CUDA_HOME=${EBROOTCUDA:-$(dirname $(dirname $(which nvcc)))}
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:${LD_LIBRARY_PATH:-}
 
-export EARTH2STUDIO_CACHE=/cluster/projects/nn8106k/siyan/earth2studio_cache
-export EARTH2STUDIO_DATA_CACHE=/cluster/projects/nn8106k/siyan/earth2studio_cache/data
-export EARTH2STUDIO_MODEL_CACHE=/cluster/projects/nn8106k/siyan/earth2studio_cache/models
+export EARTH2STUDIO_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_cache
+export EARTH2STUDIO_DATA_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_cache/data
+export EARTH2STUDIO_MODEL_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_cache/models
 
 mkdir -p "$EARTH2STUDIO_DATA_CACHE"
 mkdir -p "$EARTH2STUDIO_MODEL_CACHE"

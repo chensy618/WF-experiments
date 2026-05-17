@@ -25,12 +25,12 @@ source /cluster/projects/nn8106k/siyan/envs/earth2studio/bin/activate
 
 cd /cluster/home/siyan/github/WF-experiments
 
-mkdir -p /cluster/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_combined
+mkdir -p /cluster/work/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_combined
 mkdir -p experiments/jobs/.out experiments/jobs/.err
 
 python -u experiments/scripts/combine_fcn3_station_weekly.py \
-  --input-dir /cluster/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_weekly \
-  --output-dir /cluster/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_combined \
+  --input-dir /cluster/work/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_weekly \
+  --output-dir /cluster/work/projects/nn8106k/siyan/WF-experiments/outputs/fcn3_station_combined \
   --output-name fcn3_station_wind_2009_2012.zarr \
   --start "2009-01-01 00:00" \
   --end "2012-12-31 18:00"
