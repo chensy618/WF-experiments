@@ -75,5 +75,9 @@ pip-delete-this-directory.txt
 .uv/
 .out/
 .err/
+.err_fcn3_2022_2025/
+.out_fcn3_2022_2025/
+.err_graphcast_2022_2025/
+.out_graphcast_2022_2025/
 dependency_script/
 experiments/outputs/
