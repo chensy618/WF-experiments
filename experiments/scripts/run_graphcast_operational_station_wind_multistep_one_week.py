@@ -23,6 +23,7 @@ import zarr
 
 from earth2studio.data import CDS
 from earth2studio.io import ZarrBackend
+from earth2studio.models.auto import Package
 from earth2studio.models.px import GraphCastOperational
 from earth2studio.run import deterministic
 
@@ -113,6 +114,16 @@ def parse_args() -> argparse.Namespace:
         "--overwrite",
         action="store_true",
         help="Overwrite existing output if present.",
+    )
+
+    parser.add_argument(
+        "--package-path",
+        type=str,
+        default=None,
+        help=(
+            "Path to a local directory containing pre-downloaded GraphCast model files "
+            "(stats/, params/, dataset/ subdirs). When set, skips GCS download."
+        ),
     )
 
     return parser.parse_args()
@@ -285,7 +296,11 @@ def main() -> None:
             return
 
     print("Loading GraphCastOperational package...")
-    package = GraphCastOperational.load_default_package()
+    if args.package_path:
+        print(f"Using local package path: {args.package_path}")
+        package = Package(args.package_path)
+    else:
+        package = GraphCastOperational.load_default_package()
 
     print("Loading GraphCastOperational model...")
     model = GraphCastOperational.load_model(package)

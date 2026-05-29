@@ -38,6 +38,7 @@ export LD_LIBRARY_PATH=$CUDA_HOME/lib64:${LD_LIBRARY_PATH:-}
 export EARTH2STUDIO_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_cache
 export EARTH2STUDIO_DATA_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_cache/data
 export EARTH2STUDIO_MODEL_CACHE=/cluster/work/projects/nn8106k/siyan/earth2studio_cache/models
+export GC_PACKAGE_PATH=/cluster/work/projects/nn8106k/siyan/earth2studio_cache/models/graphcast_local
 
 OUTPUT_DIR=/cluster/work/projects/nn8106k/siyan/WF-experiments/outputs/graphcast_operational_station_weekly_multistep_2022
 
@@ -108,7 +109,8 @@ python -u experiments/scripts/run_graphcast_operational_station_wind_multistep_o
   --start-date "${WEEK_START}" \
   --days "${DAYS}" \
   --nsteps 4 \
-  --output-dir "${OUTPUT_DIR}"
+  --output-dir "${OUTPUT_DIR}" \
+  --package-path "${GC_PACKAGE_PATH}"
 
 echo "============================================================"
 echo "Finished GraphCast Operational station wind multi-step job"
