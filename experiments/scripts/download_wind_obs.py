@@ -8,7 +8,7 @@ SN88690  Hekkingen Fyr   (Senja, Troms)
 SN90760  Fakken          (Karlsøy, Troms)
 SN90490  Tromsø-langnes  (Tromsø, Troms)
 
-Years: 2009-2012, 2022-2025
+Years: 2009-2025 (one file per station per year)
 
 Usage
 -----
@@ -38,9 +38,11 @@ STATIONS = {
     "SN88690": "Hekkingen_Fyr",
     "SN90760": "Fakken",
     "SN90490": "Tromsoe_Langnes",
+    "SN90285": "Soere_Angstaursundet",  # active from 2025-11-18
 }
 
-YEAR_RANGES = [(2009, 2012), (2022, 2025)]
+YEAR_START = 2009
+YEAR_END = 2025
 
 ELEMENTS = "wind_speed,wind_from_direction,wind_speed_of_gust,max(wind_speed PT1H),min(wind_speed PT1H)"
 
@@ -127,34 +129,38 @@ def main() -> None:
 
     for station_id, station_name in STATIONS.items():
         print(f"\n=== {station_name} ({station_id}) ===")
-        all_frames: list[pd.DataFrame] = []
 
-        for y_start, y_end in YEAR_RANGES:
-            print(f"  Fetching {y_start}–{y_end} …")
-            for start, end in month_chunks(y_start, y_end, CHUNK_MONTHS):
+        for year in range(YEAR_START, YEAR_END + 1):
+            out_path = OUTPUT_DIR / f"{station_id}_{station_name}_{year}.csv"
+            if out_path.exists():
+                print(f"  {year}: already exists, skipping.")
+                continue
+
+            print(f"  Fetching {year} …")
+            year_frames: list[pd.DataFrame] = []
+
+            for start, end in month_chunks(year, year, CHUNK_MONTHS):
                 df = fetch_chunk(station_id, start, end)
                 if not df.empty:
-                    all_frames.append(df)
+                    year_frames.append(df)
                 time.sleep(REQUEST_DELAY)
 
-        if not all_frames:
-            print(f"  No data retrieved for {station_id}.")
-            continue
+            if not year_frames:
+                print(f"  {year}: no data retrieved.")
+                continue
 
-        combined = pd.concat(all_frames, ignore_index=True)
-        combined["time"] = pd.to_datetime(combined["time"], utc=True)
-        combined.sort_values("time", inplace=True)
-        combined.drop_duplicates(subset=["time", "element"], inplace=True)
+            combined = pd.concat(year_frames, ignore_index=True)
+            combined["time"] = pd.to_datetime(combined["time"], utc=True)
+            combined.sort_values("time", inplace=True)
+            combined.drop_duplicates(subset=["time", "element"], inplace=True)
 
-        # Pivot so each element is its own column
-        pivoted = combined.pivot_table(
-            index="time", columns="element", values="value", aggfunc="first"
-        ).reset_index()
-        pivoted.columns.name = None
+            pivoted = combined.pivot_table(
+                index="time", columns="element", values="value", aggfunc="first"
+            ).reset_index()
+            pivoted.columns.name = None
 
-        out_path = OUTPUT_DIR / f"{station_id}_{station_name}.csv"
-        pivoted.to_csv(out_path, index=False)
-        print(f"  Saved {len(pivoted)} hourly rows → {out_path}")
+            pivoted.to_csv(out_path, index=False)
+            print(f"  {year}: saved {len(pivoted)} hourly rows → {out_path}")
 
 
 if __name__ == "__main__":
