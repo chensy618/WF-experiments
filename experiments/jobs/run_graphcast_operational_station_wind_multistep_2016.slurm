@@ -2,7 +2,7 @@
 #SBATCH --account=nn8106k
 #SBATCH --partition=accel
 #SBATCH --job-name=gc_2016_multi
-#SBATCH --time=08:00:00
+#SBATCH --time=16:00:00
 #SBATCH --mem=192G
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=4
