@@ -53,6 +53,10 @@ PRESSURE_LEVEL_VARS = [
     "specific_humidity",
 ]
 
+# Vertical velocity was not included in the original download.
+# Saved separately as era5_w_{year}.nc because GraphCastOperational requires it.
+VERTICAL_VELOCITY_VAR = ["vertical_velocity"]
+
 PRESSURE_LEVELS = [
     "50", "100", "150", "200", "250", "300",
     "400", "500", "600", "700", "850", "925", "1000",
@@ -104,6 +108,23 @@ def download_pressure_levels(
         print(f"  Requesting pressure-level {year}-{month} ...")
         req = _base_request(year, [month])
         req["variable"] = PRESSURE_LEVEL_VARS
+        req["pressure_level"] = PRESSURE_LEVELS
+        c.retrieve("reanalysis-era5-pressure-levels", req, str(out))
+        print(f"  Saved -> {out}")
+
+
+def download_vertical_velocity(
+    c: cdsapi.Client, year: int, output_dir: Path
+) -> None:
+    """Download vertical velocity (w) month-by-month into era5_w_{year}_{mm}.nc."""
+    for month in MONTHS:
+        out = output_dir / f"era5_w_{year}_{month}.nc"
+        if out.exists():
+            print(f"  Skipping {out.name} (already exists)")
+            continue
+        print(f"  Requesting vertical velocity {year}-{month} ...")
+        req = _base_request(year, [month])
+        req["variable"] = VERTICAL_VELOCITY_VAR
         req["pressure_level"] = PRESSURE_LEVELS
         c.retrieve("reanalysis-era5-pressure-levels", req, str(out))
         print(f"  Saved -> {out}")
@@ -162,6 +183,10 @@ def main() -> None:
         "--prev-dec31", action="store_true",
         help="Also download Dec 31 18:00 of the previous year (needed for GraphCast Jan 1 init)",
     )
+    parser.add_argument(
+        "--w-only", action="store_true",
+        help="Download only vertical velocity (era5_w_{year}.nc) — needed for GraphCast",
+    )
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -172,6 +197,10 @@ def main() -> None:
         print(f"Year {year}")
         print(f"{'='*50}")
 
+        if args.w_only:
+            download_vertical_velocity(c, year, args.output_dir)
+            continue
+
         if args.prev_dec31:
             download_prev_dec31(c, year, args.output_dir)
 
@@ -179,6 +208,7 @@ def main() -> None:
             download_single_level(c, year, MONTHS, args.output_dir)
         if not args.single_only:
             download_pressure_levels(c, year, MONTHS, args.output_dir)
+        download_vertical_velocity(c, year, args.output_dir)
 
     print("\nAll downloads complete.")
 

@@ -168,9 +168,9 @@ def run_forecasts(
     from earth2studio.run import deterministic
 
     fc_dir  = OUT_ROOT / "forecasts" / model_label / str(year)
-    tmp_dir = fc_dir / "tmp_raw"
+    raw_dir = fc_dir / "raw"
     fc_dir.mkdir(parents=True, exist_ok=True)
-    tmp_dir.mkdir(exist_ok=True)
+    raw_dir.mkdir(exist_ok=True)
 
     lead_hours = [6 * i for i in range(1, nsteps + 1)]
     print(f"\n[Step 3] {model_label} forecasts — year {year}")
@@ -186,19 +186,21 @@ def run_forecasts(
             continue
 
         init_times = _build_init_times(model_label, week_start, week_end)
-        raw_zarr   = tmp_dir / f"raw_{tag}.zarr"
-        if raw_zarr.exists():
-            shutil.rmtree(raw_zarr)
 
         print(f"  {tag}: {len(init_times)} inits ...", end=" ", flush=True)
-        io = ZarrBackend(str(raw_zarr))
-        deterministic(init_times, nsteps, model, data, io)
+        stn_datasets = []
+        for i, t in enumerate(init_times):
+            t_zarr = raw_dir / f"raw_{tag}_{i:03d}.zarr"
+            if t_zarr.exists():
+                shutil.rmtree(t_zarr)
+            io = ZarrBackend(str(t_zarr))
+            deterministic([t], nsteps, model, data, io)
+            stn_datasets.append(_extract_station_wind(t_zarr, model_label))
+            shutil.rmtree(t_zarr)
 
-        stn_ds = _extract_station_wind(raw_zarr, model_label)
+        stn_ds = xr.concat(stn_datasets, dim="time")
         stn_ds.to_zarr(out_zarr, mode="w")
-        shutil.rmtree(raw_zarr)
         print(f"done ({len(stn_ds.time)} inits saved)")
 
-    shutil.rmtree(tmp_dir, ignore_errors=True)
     print(f"  Forecasts complete → {fc_dir}")
     return fc_dir

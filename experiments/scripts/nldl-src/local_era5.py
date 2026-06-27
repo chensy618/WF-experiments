@@ -6,6 +6,7 @@ File layout (all under ERA5_DIR):
     era5_single_{year}_dec31.nc      — Dec 31 18:00 of {year}, GraphCast buffer
     era5_pressure_{year}_{MM}.nc     — one file per month, pressure-level vars
     era5_pressure_{year}_dec31.nc    — Dec 31 18:00 of {year}, GraphCast buffer
+    era5_w_{year}_{MM}.nc            — one file per month, vertical velocity (w) only
 
 earth2studio variable → NetCDF mapping
 ---------------------------------------
@@ -17,7 +18,11 @@ Single-level (era5_single):
 Pressure-level (era5_pressure):
     u{p}   → u         v{p}   → v
     z{p}   → z         t{p}   → t        q{p} → q
-    (where {p} is the pressure level in hPa, e.g. 500)
+    (where {p} is the pressure level in hPa, e.g. u500, z250)
+
+Vertical velocity (era5_w):
+    w{p}   → w
+    (separate annual file downloaded from CDS variable "vertical_velocity")
 """
 
 from __future__ import annotations
@@ -46,10 +51,10 @@ _SINGLE_MAP: dict[str, str] = {
     "tcwv":  "tcwv",
 }
 
-_PRESSURE_PREFIX = {"u", "v", "z", "t", "q"}
+_PRESSURE_PREFIX = {"u", "v", "z", "t", "q", "w"}
 _VALID_LEVELS    = {50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 850, 925, 1000}
 
-_PRESSURE_RE = re.compile(r"^([uvztq])(\d+)$")
+_PRESSURE_RE = re.compile(r"^([uvztqw])(\d+)$")
 
 
 def _parse_variable(name: str) -> tuple[str, str | None, int | None]:
@@ -79,7 +84,7 @@ def _parse_variable(name: str) -> tuple[str, str | None, int | None]:
     raise ValueError(
         f"Variable '{name}' not recognised by LocalERA5. "
         f"Single-level vars: {list(_SINGLE_MAP)}. "
-        f"Pressure-level vars: [u|v|z|t|q]{{level}}, e.g. u500, z250."
+        f"Pressure-level vars: [u|v|z|t|q|w]{{level}}, e.g. u500, w50."
     )
 
 
@@ -103,6 +108,18 @@ def _pressure_path(t: datetime) -> list[Path]:
         paths.append(ERA5_DIR / f"era5_pressure_{t.year}_dec31.nc")
     prev = t.year - 1
     paths.append(ERA5_DIR / f"era5_pressure_{prev}_dec31.nc")
+    return paths
+
+
+def _w_path(t: datetime) -> list[Path]:
+    """Candidate file paths for vertical velocity (w) at time t.
+
+    Vertical velocity is stored in monthly files (era5_w_{year}_{MM}.nc).
+    Also checks December of the previous year for Dec 31 init times.
+    """
+    paths = [ERA5_DIR / f"era5_w_{t.year}_{t.month:02d}.nc"]
+    prev = t.year - 1
+    paths.append(ERA5_DIR / f"era5_w_{prev}_12.nc")
     return paths
 
 
@@ -208,7 +225,9 @@ class LocalERA5:
                 da = snap[nc_var].rename({lat_dim: "lat", lon_dim: "lon"})
 
             else:  # pressure level
-                path = _find_file(_pressure_path(t))
+                # w (vertical velocity) lives in a separate annual file
+                candidates = _w_path(t) if nc_var == "w" else _pressure_path(t)
+                path = _find_file(candidates)
                 ds   = _open(path)
                 snap = _select_time(ds, t)
                 lat_dim, lon_dim = _lat_lon_names(snap)
@@ -217,6 +236,7 @@ class LocalERA5:
                 for plev_dim in ("pressure_level", "level"):
                     if plev_dim in snap.coords:
                         da = snap[nc_var].sel({plev_dim: level}, method="nearest")
+                        da = da.drop_vars(plev_dim, errors="ignore")
                         da = da.rename({lat_dim: "lat", lon_dim: "lon"})
                         break
                 else:

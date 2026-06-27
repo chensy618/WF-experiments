@@ -131,8 +131,10 @@ def deterministic(
     var_names = total_coords.pop("variable")
     io.add_array(total_coords, var_names)
 
-    # Map lat and lon if needed
-    x, coords = map_coords(x, coords, prognostic.input_coords())
+    # Map lat and lon if needed — do on CPU to avoid OOM when model occupies most GPU VRAM
+    x_device = x.device
+    x, coords = map_coords(x.cpu(), coords, prognostic.input_coords())
+    x = x.to(x_device)
     # Create prognostic iterator
     model = prognostic.create_iterator(x, coords)
 
