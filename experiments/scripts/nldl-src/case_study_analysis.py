@@ -6,7 +6,8 @@ Steps
 1. Load ERA5 data source   (local_era5.LocalERA5 — reads /cluster/work/.../era5_6h)
 2. Load model weights      (forecasting.load_model)
 3. Run forecasts           (forecasting.run_forecasts)
-4. Analysis                (analysis.run_analysis)
+
+Metrics and figures are produced in the notebook (fcn3_case_study_analysis.ipynb).
 
 Usage
 -----
@@ -16,9 +17,6 @@ Usage
     # GraphCast, specific years, local weights
     python case_study_analysis.py --model graphcast --year 2016 2022 \\
         --package-path /cluster/work/projects/nn8106k/siyan/graphcast_weights
-
-    # Analysis only (forecasts already saved)
-    python case_study_analysis.py --model fcn3 --analysis-only
 """
 
 import argparse
@@ -52,10 +50,6 @@ def parse_args() -> argparse.Namespace:
         "--overwrite", action="store_true",
         help="Overwrite existing weekly forecast zarrs.",
     )
-    parser.add_argument(
-        "--analysis-only", action="store_true",
-        help="Skip Steps 1–3; run analysis on already-saved forecasts.",
-    )
     return parser.parse_args()
 
 
@@ -67,21 +61,15 @@ def main() -> None:
     print(f"Case study  |  model={args.model}  |  years={years}")
     print("=" * 70)
 
-    if not args.analysis_only:
-        from forecasting import load_data_source, load_model, run_forecasts
+    from forecasting import load_data_source, load_model, run_forecasts
 
-        data              = load_data_source(args.era5_dir)
-        model, model_label = load_model(args.model, args.package_path)
+    data               = load_data_source(args.era5_dir)
+    model, model_label = load_model(args.model, args.package_path)
 
-        for year in years:
-            run_forecasts(model, model_label, data, year,
-                          nsteps=args.nsteps, overwrite=args.overwrite)
-    else:
-        model_label = "FCN3" if args.model == "fcn3" else "GraphCast"
-        print("[Steps 1–3 skipped] Running analysis only.")
+    for year in years:
+        run_forecasts(model, model_label, data, year,
+                      nsteps=args.nsteps, overwrite=args.overwrite)
 
-    from analysis import run_analysis
-    run_analysis(model_label, years)
 
 
 if __name__ == "__main__":
