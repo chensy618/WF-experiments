@@ -9,7 +9,6 @@ Source: gs://weatherbench2/datasets/hres_forecasts/1440x721/2016-2022-0012-1440x
 Output: /cluster/work/projects/nn8106k/siyan/weatherbench2_forecasts/hres/0p25/2016-2022-0012-1440x721.zarr
 """
 
-import shutil
 import sys
 import time
 from pathlib import Path
@@ -40,18 +39,24 @@ SESSION.headers["Accept-Encoding"] = "identity"
 
 
 def _get(url: str, **kwargs) -> requests.Response:
-    for attempt in range(5):
+    for attempt in range(8):
         try:
             resp = SESSION.get(url, timeout=120, **kwargs)
             resp.raise_for_status()
             return resp
-        except requests.HTTPError:
-            raise  # 4xx/5xx — don't retry
-        except requests.RequestException as e:
-            if attempt == 4:
+        except requests.HTTPError as e:
+            if resp.status_code < 500:
+                raise  # 4xx client errors — don't retry
+            if attempt == 7:
                 raise
             wait = 2 ** attempt
-            print(f"  Retry {attempt+1}/5 after {wait}s: {e}", flush=True)
+            print(f"  HTTP {resp.status_code}, retry {attempt+1}/8 after {wait}s: {e}", flush=True)
+            time.sleep(wait)
+        except requests.RequestException as e:
+            if attempt == 7:
+                raise
+            wait = 2 ** attempt
+            print(f"  Retry {attempt+1}/8 after {wait}s: {e}", flush=True)
             time.sleep(wait)
 
 
@@ -110,12 +115,8 @@ def download_object(gcs_obj: str, local_file: Path) -> None:
 def main() -> None:
     wind_dir = LOCAL_PATH / "10m_wind_speed"
     if wind_dir.exists() and any(wind_dir.iterdir()):
-        print(f"Already complete: {LOCAL_PATH}")
-        sys.exit(0)
-
-    if LOCAL_PATH.exists():
-        print(f"Incomplete download found, removing: {LOCAL_PATH}")
-        shutil.rmtree(LOCAL_PATH)
+        n = sum(1 for _ in wind_dir.iterdir())
+        print(f"Resuming partial download ({n} chunks already present): {LOCAL_PATH}")
 
     LOCAL_DIR.mkdir(parents=True, exist_ok=True)
     LOCAL_PATH.mkdir(parents=True, exist_ok=True)

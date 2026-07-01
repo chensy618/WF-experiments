@@ -81,3 +81,5 @@ pip-delete-this-directory.txt
 .out_graphcast_2022_2025/
 dependency_script/
 experiments/outputs/
+experiments/jobs/logs/
+
