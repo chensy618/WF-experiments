@@ -86,10 +86,12 @@ def _week_tag(start: datetime, end: datetime) -> str:
     return f"{start.strftime('%Y%m%d')}_{end.strftime('%Y%m%d')}"
 
 
-def _build_init_times(model_label: str, week_start: datetime, week_end: datetime) -> list[str]:
+def _build_init_times(
+    model_label: str, week_start: datetime, week_end: datetime, daily_only: bool = False
+) -> list[str]:
     """Return ISO-format init time strings for one week."""
     days = (week_end - week_start).days + 1
-    if model_label == "GraphCast":
+    if model_label == "GraphCast" and not daily_only:
         # 6-hourly: 00, 06, 12, 18 UTC every day
         return [
             t.strftime("%Y-%m-%dT%H:%M:%S")
@@ -100,7 +102,7 @@ def _build_init_times(model_label: str, week_start: datetime, week_end: datetime
                 freq="6h",
             )
         ]
-    # FCN3: daily 00 UTC
+    # Daily 00 UTC: FCN3 always, or GraphCast when daily_only=True
     return [
         (week_start + timedelta(days=d)).strftime("%Y-%m-%dT00:00:00")
         for d in range(days)
@@ -156,18 +158,27 @@ def run_forecasts(
     year: int,
     nsteps: int = NSTEPS,
     overwrite: bool = False,
+    daily_only: bool = False,
+    out_tag: str = "",
 ) -> Path:
     """Run weekly forecast chunks for a full year using earth2studio.deterministic.
 
     Saves compact station zarrs to:
-        OUT_ROOT / forecasts / {model_label} / {year} / {model}_{week_tag}.zarr
+        OUT_ROOT / forecasts / {model_label}{out_tag} / {year} / {model}_{week_tag}.zarr
+
+    Parameters
+    ----------
+    daily_only : force 00 UTC-only init (overrides GraphCast's default 6-hourly
+        cadence; FCN3 is always daily regardless of this flag).
+    out_tag    : suffix appended to the model's forecast directory, e.g. "_72h",
+        to keep a longer-horizon run from overwriting the default one.
 
     Returns the directory containing the weekly zarrs.
     """
     from earth2studio.io import ZarrBackend
     from earth2studio.run import deterministic
 
-    fc_dir  = OUT_ROOT / "forecasts" / model_label / str(year)
+    fc_dir  = OUT_ROOT / "forecasts" / f"{model_label}{out_tag}" / str(year)
     raw_dir = fc_dir / "raw"
     fc_dir.mkdir(parents=True, exist_ok=True)
     raw_dir.mkdir(exist_ok=True)
@@ -176,6 +187,7 @@ def run_forecasts(
     print(f"\n[Step 3] {model_label} forecasts — year {year}")
     print(f"  Output  : {fc_dir}")
     print(f"  Leads   : {lead_hours} h")
+    print(f"  Daily-only init: {daily_only}")
 
     for week_start, week_end in _weekly_ranges(year):
         tag      = _week_tag(week_start, week_end)
@@ -185,7 +197,7 @@ def run_forecasts(
             print(f"  {tag}: exists, skipping.")
             continue
 
-        init_times = _build_init_times(model_label, week_start, week_end)
+        init_times = _build_init_times(model_label, week_start, week_end, daily_only=daily_only)
 
         print(f"  {tag}: {len(init_times)} inits ...", end=" ", flush=True)
         stn_datasets = []

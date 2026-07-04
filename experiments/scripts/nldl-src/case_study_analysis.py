@@ -17,11 +17,17 @@ Usage
     # GraphCast, specific years, local weights
     python case_study_analysis.py --model graphcast --year 2016 2022 \\
         --package-path /cluster/work/projects/nn8106k/siyan/graphcast_weights
+
+    # 2-day/3-day (+72h) case study — settings come from config.py (NSTEPS_LONG,
+    # LONG_OUT_TAG, LONG_DAILY_ONLY), not from flags, so both models stay in sync
+    python case_study_analysis.py --model fcn3 --preset long
+    python case_study_analysis.py --model graphcast --preset long \\
+        --package-path /cluster/work/projects/nn8106k/siyan/graphcast_weights
 """
 
 import argparse
 
-from config import ALL_YEARS, NSTEPS
+from config import ALL_YEARS, LONG_DAILY_ONLY, LONG_OUT_TAG, NSTEPS, NSTEPS_LONG
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,8 +41,24 @@ def parse_args() -> argparse.Namespace:
         help=f"Year(s) to process. Default: all case-study years {ALL_YEARS}.",
     )
     parser.add_argument(
+        "--preset", choices=["default", "long"], default="default",
+        help="'long' pulls nsteps/out-tag/daily-only from config.py's "
+             f"NSTEPS_LONG={NSTEPS_LONG}, LONG_OUT_TAG='{LONG_OUT_TAG}', "
+             f"LONG_DAILY_ONLY={LONG_DAILY_ONLY} — the 2-day/3-day case-study "
+             "run. Overrides --nsteps/--out-tag/--daily-only when set.",
+    )
+    parser.add_argument(
         "--nsteps", type=int, default=NSTEPS,
-        help=f"Number of 6-hour forecast steps (default {NSTEPS}).",
+        help=f"Number of 6-hour forecast steps (default {NSTEPS}). Ignored if --preset long.",
+    )
+    parser.add_argument(
+        "--out-tag", type=str, default="",
+        help="Suffix for the forecast output dir, e.g. '_72h'. Ignored if --preset long.",
+    )
+    parser.add_argument(
+        "--daily-only", action="store_true",
+        help="Force daily 00 UTC init (overrides GraphCast's default 6-hourly "
+             "cadence; no effect on FCN3). Ignored if --preset long.",
     )
     parser.add_argument(
         "--package-path", type=str, default=None,
@@ -57,8 +79,14 @@ def main() -> None:
     args = parse_args()
     years = args.year
 
+    if args.preset == "long":
+        nsteps, out_tag, daily_only = NSTEPS_LONG, LONG_OUT_TAG, LONG_DAILY_ONLY
+    else:
+        nsteps, out_tag, daily_only = args.nsteps, args.out_tag, args.daily_only
+
     print("=" * 70)
-    print(f"Case study  |  model={args.model}  |  years={years}")
+    print(f"Case study  |  model={args.model}  |  years={years}  |  preset={args.preset}")
+    print(f"  nsteps={nsteps}  out_tag='{out_tag}'  daily_only={daily_only}")
     print("=" * 70)
 
     from forecasting import load_data_source, load_model, run_forecasts
@@ -68,7 +96,8 @@ def main() -> None:
 
     for year in years:
         run_forecasts(model, model_label, data, year,
-                      nsteps=args.nsteps, overwrite=args.overwrite)
+                      nsteps=nsteps, overwrite=args.overwrite,
+                      daily_only=daily_only, out_tag=out_tag)
 
 
 

@@ -12,12 +12,26 @@ from pathlib import Path
 LEAD_H = 12    # hours — lead time used for evaluation
 NSTEPS = 4     # 6-hour steps → +6 h, +12 h, +18 h, +24 h
 
+# --- Extended (2-day / 3-day) case-study preset --------------------------------
+# Selected via `--preset long` in case_study_analysis.py. Single source of
+# truth for the longer-horizon forecast jobs — change here, not in the
+# .slurm scripts, and both models pick it up next run.
+#
+# GraphCast is forced to daily-only (00 UTC) init under this preset, same as
+# FCN3, instead of its usual 6-hourly cadence: at +72 h, 6-hourly init would
+# be ~4x the compute of the +24 h GraphCast runs on top of the ~3x already
+# needed for the extra lead steps, and it would no longer be a fair
+# comparison against FCN3 (which only ever runs daily).
+NSTEPS_LONG     = 12      # 6-hour steps → up to +72 h (includes +48 h as an intermediate lead)
+LONG_OUT_TAG    = "_72h"  # forecasts saved to forecasts/{Model}{LONG_OUT_TAG}/{year}/
+LONG_DAILY_ONLY = True    # force daily 00 UTC init for both models under this preset
+
 # =============================================================================
 # Year classification
 # =============================================================================
 
 IN_TRAINING_YEARS     = [2016, 2017]
-OUT_OF_TRAINING_YEARS = [2020, 2021, 2022]
+OUT_OF_TRAINING_YEARS = [2018, 2019, 2020, 2021, 2022]
 ALL_YEARS             = IN_TRAINING_YEARS + OUT_OF_TRAINING_YEARS
 
 # =============================================================================
