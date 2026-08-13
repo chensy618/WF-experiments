@@ -109,8 +109,12 @@ def _build_init_times(
     ]
 
 
-def _extract_station_wind(raw_zarr_path: Path, model_label: str) -> xr.Dataset:
-    """Extract nearest-gridpoint 10 m wind speed for all stations."""
+def _read_raw_wind(raw_zarr_path: Path) -> tuple:
+    """Shared raw-zarr readout for both extraction methods below.
+
+    Returns (lats, lons, init_times, lt_hours, wind_speed, u10m, v10m) where
+    wind_speed/u10m/v10m each have shape (time, lead_time, lat, lon).
+    """
     g = zarr.open_group(str(raw_zarr_path), mode="r")
 
     lats = g["lat"][:]
@@ -130,25 +134,107 @@ def _extract_station_wind(raw_zarr_path: Path, model_label: str) -> xr.Dataset:
         else lt_raw.astype(float)
     )
 
-    wind_speed = np.sqrt(g["u10m"][:] ** 2 + g["v10m"][:] ** 2).astype(np.float32)
+    u10m = g["u10m"][:].astype(np.float32)
+    v10m = g["v10m"][:].astype(np.float32)
+    wind_speed = np.sqrt(u10m ** 2 + v10m ** 2).astype(np.float32)
+    return lats, lons, init_times, lt_hours, wind_speed, u10m, v10m
 
-    das = []
+
+def _extract_station_wind_nearest(
+    raw_zarr_path: Path, model_label: str, save_uv: bool = False
+) -> xr.Dataset:
+    """Extract nearest-gridpoint 10 m wind speed for all stations.
+
+    This is the original extraction method used for every FCN3/GraphCast run
+    to date (2016-2022, `_72h` included) — kept unchanged so existing forecast
+    zarrs remain reproducible from this function.
+
+    save_uv : if True, also adds `u10m`/`v10m` data variables alongside
+        `wind_speed_10m` (which is always present, unchanged). Callers that
+        want this must also route to a separate output directory — see
+        `run_forecasts`'s `_uv` dir-suffix — so it never overwrites existing
+        scalar-only forecast zarrs.
+    """
+    lats, lons, init_times, lt_hours, wind_speed, u10m, v10m = _read_raw_wind(raw_zarr_path)
+    coords = {"time": init_times, "lead_time": lt_hours.astype("timedelta64[h]")}
+
+    das, u_das, v_das = [], [], []
     for st in STATIONS:
         lat_i = int(np.argmin(np.abs(lats - st["lat"])))
         lon_i = int(np.argmin(np.abs(lons - (st["lon"] % 360))))
-        da = xr.DataArray(
-            wind_speed[:, :, lat_i, lon_i],
-            dims=["time", "lead_time"],
-            coords={
-                "time":      init_times,
-                "lead_time": lt_hours.astype("timedelta64[h]"),
-            },
-        ).expand_dims(station=[st["id"]])
-        das.append(da)
+        das.append(
+            xr.DataArray(wind_speed[:, :, lat_i, lon_i], dims=["time", "lead_time"], coords=coords)
+            .expand_dims(station=[st["id"]])
+        )
+        if save_uv:
+            u_das.append(
+                xr.DataArray(u10m[:, :, lat_i, lon_i], dims=["time", "lead_time"], coords=coords)
+                .expand_dims(station=[st["id"]])
+            )
+            v_das.append(
+                xr.DataArray(v10m[:, :, lat_i, lon_i], dims=["time", "lead_time"], coords=coords)
+                .expand_dims(station=[st["id"]])
+            )
 
     ds = xr.concat(das, dim="station").to_dataset(name="wind_speed_10m")
+    if save_uv:
+        ds["u10m"] = xr.concat(u_das, dim="station")
+        ds["v10m"] = xr.concat(v_das, dim="station")
     ds.attrs["model"] = model_label
+    ds.attrs["extraction_method"] = "nearest"
     return ds
+
+
+def _extract_station_wind_interp(
+    raw_zarr_path: Path, model_label: str, save_uv: bool = False
+) -> xr.Dataset:
+    """Extract 10 m wind speed for all stations via bilinear interpolation.
+
+    Spatial matching matches stationbench (https://github.com/juaAI/stationbench,
+    `interpolate_to_stations` in stationbench/calculate_metrics.py): xarray's
+    `.interp(..., method="linear")` to each station's exact coordinates, rather
+    than snapping to the nearest 0.25° grid cell.
+
+    save_uv : if True, also adds `u10m`/`v10m` data variables (interpolated the
+        same way as `wind_speed_10m`, which is always present, unchanged).
+    """
+    lats, lons, init_times, lt_hours, wind_speed, u10m, v10m = _read_raw_wind(raw_zarr_path)
+    coords = {
+        "time":      init_times,
+        "lead_time": lt_hours.astype("timedelta64[h]"),
+        "lat":       lats,
+        "lon":       lons,
+    }
+    da = xr.DataArray(wind_speed, dims=["time", "lead_time", "lat", "lon"], coords=coords)
+
+    station_ids = [st["id"] for st in STATIONS]
+    station_lat = xr.DataArray([st["lat"] for st in STATIONS], dims="station", coords={"station": station_ids})
+    station_lon = xr.DataArray([st["lon"] % 360 for st in STATIONS], dims="station", coords={"station": station_ids})
+
+    def _interp(arr: np.ndarray) -> xr.DataArray:
+        da_arr = xr.DataArray(arr, dims=["time", "lead_time", "lat", "lon"], coords=coords)
+        # xr.interp() with vectorized indexers appends the new "station" dim at
+        # the end (time, lead_time, station), unlike the nearest-neighbor
+        # extraction's (station, time, lead_time). Transpose so both extraction
+        # methods produce identically-shaped output — load_fcn3()/load_graphcast()
+        # index positionally and assume the nearest-neighbor layout.
+        return da_arr.interp(lat=station_lat, lon=station_lon, method="linear").transpose(
+            "station", "time", "lead_time"
+        )
+
+    ds = _interp(wind_speed).to_dataset(name="wind_speed_10m")
+    if save_uv:
+        ds["u10m"] = _interp(u10m)
+        ds["v10m"] = _interp(v10m)
+    ds.attrs["model"] = model_label
+    ds.attrs["extraction_method"] = "interp"
+    return ds
+
+
+_EXTRACTION_FUNCS = {
+    "nearest": _extract_station_wind_nearest,
+    "interp":  _extract_station_wind_interp,
+}
 
 
 def run_forecasts(
@@ -160,11 +246,20 @@ def run_forecasts(
     overwrite: bool = False,
     daily_only: bool = False,
     out_tag: str = "",
+    extraction: str = "nearest",
+    save_uv: bool = False,
 ) -> Path:
     """Run weekly forecast chunks for a full year using earth2studio.deterministic.
 
     Saves compact station zarrs to:
-        OUT_ROOT / forecasts / {model_label}{out_tag} / {year} / {model}_{week_tag}.zarr
+        OUT_ROOT / forecasts / {model_label}{out_tag}{dir_suffix} / {year} / {model}_{week_tag}.zarr
+
+    where `dir_suffix` is "" for `extraction="nearest"` (unchanged from every
+    prior run, so existing nearest-neighbor forecasts are never touched),
+    "_interp" for `extraction="interp"`, and additionally suffixed with "_uv"
+    when `save_uv=True` — so runs that also save u10m/v10m always land in
+    their own directory and never overwrite (or get skipped-over-by) an
+    existing scalar-only forecast run.
 
     Parameters
     ----------
@@ -172,13 +267,28 @@ def run_forecasts(
         cadence; FCN3 is always daily regardless of this flag).
     out_tag    : suffix appended to the model's forecast directory, e.g. "_72h",
         to keep a longer-horizon run from overwriting the default one.
+    extraction : "nearest" (default, original behavior) or "interp" — spatial
+        matching method used to pull station values out of the raw global-grid
+        forecast. "interp" uses bilinear interpolation to each station's exact
+        coordinates, matching stationbench's approach
+        (https://github.com/juaAI/stationbench).
+    save_uv    : if True, also extract and save `u10m`/`v10m` as additional
+        data variables alongside `wind_speed_10m` (which is always saved,
+        unchanged). Adds a "_uv" suffix to the output directory.
 
     Returns the directory containing the weekly zarrs.
     """
     from earth2studio.io import ZarrBackend
     from earth2studio.run import deterministic
 
-    fc_dir  = OUT_ROOT / "forecasts" / f"{model_label}{out_tag}" / str(year)
+    if extraction not in _EXTRACTION_FUNCS:
+        raise ValueError(f"Unknown extraction '{extraction}'. Choose from {list(_EXTRACTION_FUNCS)}.")
+    extract_fn = _EXTRACTION_FUNCS[extraction]
+    dir_suffix = "" if extraction == "nearest" else f"_{extraction}"
+    if save_uv:
+        dir_suffix += "_uv"
+
+    fc_dir  = OUT_ROOT / "forecasts" / f"{model_label}{out_tag}{dir_suffix}" / str(year)
     raw_dir = fc_dir / "raw"
     fc_dir.mkdir(parents=True, exist_ok=True)
     raw_dir.mkdir(exist_ok=True)
@@ -188,6 +298,8 @@ def run_forecasts(
     print(f"  Output  : {fc_dir}")
     print(f"  Leads   : {lead_hours} h")
     print(f"  Daily-only init: {daily_only}")
+    print(f"  Extraction: {extraction}")
+    print(f"  Save u10m/v10m: {save_uv}")
 
     for week_start, week_end in _weekly_ranges(year):
         tag      = _week_tag(week_start, week_end)
@@ -207,7 +319,7 @@ def run_forecasts(
                 shutil.rmtree(t_zarr)
             io = ZarrBackend(str(t_zarr))
             deterministic([t], nsteps, model, data, io)
-            stn_datasets.append(_extract_station_wind(t_zarr, model_label))
+            stn_datasets.append(extract_fn(t_zarr, model_label, save_uv=save_uv))
             shutil.rmtree(t_zarr)
 
         stn_ds = xr.concat(stn_datasets, dim="time")

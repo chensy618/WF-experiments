@@ -23,6 +23,20 @@ Usage
     python case_study_analysis.py --model fcn3 --preset long
     python case_study_analysis.py --model graphcast --preset long \\
         --package-path /cluster/work/projects/nn8106k/siyan/graphcast_weights
+
+    # Bilinear-interpolation spatial matching (stationbench-style), instead of
+    # nearest-neighbor. Writes to a separate {model}_interp output dir, so it
+    # never overwrites the existing nearest-neighbor forecasts above.
+    python case_study_analysis.py --model fcn3 --preset long --extraction interp
+    python case_study_analysis.py --model graphcast --preset long --extraction interp \\
+        --package-path /cluster/work/projects/nn8106k/siyan/graphcast_weights
+
+    # Also save u10m/v10m wind components alongside the scalar wind_speed_10m
+    # (which is still saved, unchanged). Writes to a separate {...}_uv output
+    # dir, so it never overwrites any existing scalar-only forecast run.
+    python case_study_analysis.py --model fcn3 --preset long --extraction interp --save-uv
+    python case_study_analysis.py --model graphcast --preset long --extraction interp --save-uv \\
+        --package-path /cluster/work/projects/nn8106k/siyan/graphcast_weights
 """
 
 import argparse
@@ -72,6 +86,21 @@ def parse_args() -> argparse.Namespace:
         "--overwrite", action="store_true",
         help="Overwrite existing weekly forecast zarrs.",
     )
+    parser.add_argument(
+        "--extraction", choices=["nearest", "interp"], default="nearest",
+        help="Spatial matching method for pulling station values out of the raw "
+             "global-grid forecast: 'nearest' (default, unchanged from all prior "
+             "runs) or 'interp' (bilinear interpolation to each station's exact "
+             "coordinates, matching stationbench's approach). 'interp' writes to "
+             "a separate {model_label}{out_tag}_interp output directory.",
+    )
+    parser.add_argument(
+        "--save-uv", action="store_true",
+        help="Also extract and save u10m/v10m wind components alongside the "
+             "scalar wind_speed_10m (which is still saved, unchanged). Writes "
+             "to a separate {model_label}{out_tag}{extraction_suffix}_uv output "
+             "directory, so it never overwrites any existing scalar-only run.",
+    )
     return parser.parse_args()
 
 
@@ -86,7 +115,8 @@ def main() -> None:
 
     print("=" * 70)
     print(f"Case study  |  model={args.model}  |  years={years}  |  preset={args.preset}")
-    print(f"  nsteps={nsteps}  out_tag='{out_tag}'  daily_only={daily_only}")
+    print(f"  nsteps={nsteps}  out_tag='{out_tag}'  daily_only={daily_only}  "
+          f"extraction={args.extraction}  save_uv={args.save_uv}")
     print("=" * 70)
 
     from forecasting import load_data_source, load_model, run_forecasts
@@ -97,7 +127,8 @@ def main() -> None:
     for year in years:
         run_forecasts(model, model_label, data, year,
                       nsteps=nsteps, overwrite=args.overwrite,
-                      daily_only=daily_only, out_tag=out_tag)
+                      daily_only=daily_only, out_tag=out_tag,
+                      extraction=args.extraction, save_uv=args.save_uv)
 
 
 
