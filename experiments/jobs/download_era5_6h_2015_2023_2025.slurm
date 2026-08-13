@@ -1,10 +1,11 @@
 #!/bin/bash
 #SBATCH --account=nn8106k
-#SBATCH --partition=small
+#SBATCH --partition=accel
 #SBATCH --job-name=era5_6h_download
 #SBATCH --time=120:00:00
 #SBATCH --mem=16G
 #SBATCH --cpus-per-task=4
+#SBATCH --gpus-per-node=1
 #SBATCH --output=/cluster/home/siyan/github/WF-experiments/experiments/jobs/logs/%x_%j.out
 #SBATCH --error=/cluster/home/siyan/github/WF-experiments/experiments/jobs/logs/%x_%j.err
 
@@ -20,10 +21,14 @@ echo "Time: $(date)"
 echo "============================================================"
 
 module --force purge
-module load NRIS/CPU
+module load NRIS/GPU
 module load Python/3.11.5-GCCcore-13.2.0
 
-source /cluster/projects/nn8106k/siyan/envs/download-cpu/bin/activate
+source /cluster/projects/nn8106k/siyan/envs/earth2studio/bin/activate
+
+export CUDA_HOME=${EBROOTCUDA:-$(dirname $(dirname $(which nvcc)))}
+export PATH=$CUDA_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$CUDA_HOME/lib64:${LD_LIBRARY_PATH:-}
 
 cd /cluster/home/siyan/github/WF-experiments
 
