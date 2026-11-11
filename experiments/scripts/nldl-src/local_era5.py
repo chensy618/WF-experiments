@@ -245,8 +245,14 @@ class LocalERA5:
                         "Expected 'pressure_level' or 'level'."
                     )
 
-            # Normalise to float32 and drop any leftover scalar coords
+            # Normalise to float32 and drop any leftover scalar coords. squeeze(drop=True)
+            # only removes length-1 *dimensions* -- it does not touch non-dimension scalar
+            # coordinates like GRIB's "number"/"expver" (present in CDS-downloaded files,
+            # absent from WeatherBench2-backfilled files), which otherwise makes
+            # xr.concat(..., dim="variable") fail below when concatenating a mix of
+            # CDS-sourced and WB2-sourced files with inconsistent scalar coords.
             da = da.astype(np.float32).squeeze(drop=True)
+            da = da.drop_vars([c for c in da.coords if c not in da.dims], errors="ignore")
             da = da.expand_dims({"variable": [var]})
             arrays.append(da)
 

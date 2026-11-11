@@ -21,14 +21,28 @@ from config import LEAD_H, NSTEPS, OUT_ROOT, STATIONS
 # Step 1  Data source
 # =============================================================================
 
-def load_data_source(era5_dir: str | None = None):
-    """Return a LocalERA5 data source reading from pre-downloaded NetCDF files.
+def load_data_source(era5_dir: str | None = None, source: str = "local"):
+    """Return the ERA5 data source used for initial conditions.
 
     Parameters
     ----------
     era5_dir : str or None
         Override the ERA5 data directory (default: config._WORK / "era5_6h").
+    source : "local" (default, pre-downloaded NetCDF via LocalERA5) or "arco"
+        (stream ERA5 from Google's ARCO-ERA5 zarr on GCS -- same ERA5 reanalysis,
+        no local copy; needs outbound HTTPS, which Olivia GPU nodes have via proxy).
+        cache=False so earth2studio does not mirror TBs of ERA5 to disk.
     """
+    if source == "arco-chunk":
+        from era5_stream import ARCOChunkStream
+        print("[Step 1] Streaming ARCO-ERA5 chunk-wise (each chunk fetched once per init)")
+        return ARCOChunkStream()
+
+    if source == "arco":
+        from earth2studio.data import ARCO
+        print("[Step 1] Streaming ERA5 from ARCO-ERA5 (GCS), cache disabled")
+        return ARCO(cache=False, verbose=False)
+
     from local_era5 import ERA5_DIR, LocalERA5
     src_dir = era5_dir or ERA5_DIR
     print(f"[Step 1] Loading local ERA5 data source from: {src_dir}")
@@ -248,6 +262,10 @@ def run_forecasts(
     out_tag: str = "",
     extraction: str = "nearest",
     save_uv: bool = False,
+    out_root: Path | None = None,
+    raw_root: Path | None = None,
+    part: int = 0,
+    nparts: int = 1,
 ) -> Path:
     """Run weekly forecast chunks for a full year using earth2studio.deterministic.
 
@@ -288,10 +306,13 @@ def run_forecasts(
     if save_uv:
         dir_suffix += "_uv"
 
-    fc_dir  = OUT_ROOT / "forecasts" / f"{model_label}{out_tag}{dir_suffix}" / str(year)
-    raw_dir = fc_dir / "raw"
+    # out_root / raw_root override config.OUT_ROOT (e.g. station zarrs on /cluster/projects,
+    # short-lived global raw zarrs on /cluster/work). Defaults are unchanged.
+    sub     = Path("forecasts") / f"{model_label}{out_tag}{dir_suffix}" / str(year)
+    fc_dir  = Path(out_root or OUT_ROOT) / sub
+    raw_dir = (Path(raw_root) / sub / "raw") if raw_root else fc_dir / "raw"
     fc_dir.mkdir(parents=True, exist_ok=True)
-    raw_dir.mkdir(exist_ok=True)
+    raw_dir.mkdir(parents=True, exist_ok=True)
 
     lead_hours = [6 * i for i in range(1, nsteps + 1)]
     print(f"\n[Step 3] {model_label} forecasts — year {year}")
@@ -301,11 +322,20 @@ def run_forecasts(
     print(f"  Extraction: {extraction}")
     print(f"  Save u10m/v10m: {save_uv}")
 
-    for week_start, week_end in _weekly_ranges(year):
+    # part/nparts: process only the part-th of nparts contiguous blocks of weeks, so one
+    # year can be split across several shorter array tasks (default: the whole year).
+    weeks = _weekly_ranges(year)
+    weeks = [list(b) for b in np.array_split(np.arange(len(weeks)), nparts)][part]
+    weeks = [_weekly_ranges(year)[i] for i in weeks]
+    print(f"  Part    : {part + 1}/{nparts} ({len(weeks)} weeks)")
+
+    for week_start, week_end in weeks:
         tag      = _week_tag(week_start, week_end)
         out_zarr = fc_dir / f"{model_label.lower()}_{tag}.zarr"
 
-        if out_zarr.exists() and not overwrite:
+        # Only a zarr with its metadata counts as done: the /cluster/work purge left
+        # empty directory skeletons that a bare exists() would wrongly skip.
+        if (out_zarr / "zarr.json").exists() and not overwrite:
             print(f"  {tag}: exists, skipping.")
             continue
 

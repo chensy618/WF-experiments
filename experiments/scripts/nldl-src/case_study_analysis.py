@@ -101,6 +101,24 @@ def parse_args() -> argparse.Namespace:
              "to a separate {model_label}{out_tag}{extraction_suffix}_uv output "
              "directory, so it never overwrites any existing scalar-only run.",
     )
+    parser.add_argument(
+        "--data-source", choices=["local", "arco", "arco-chunk"], default="local",
+        help="ERA5 initial conditions: 'local' (default, LocalERA5 NetCDF) or 'arco' "
+             "(stream ARCO-ERA5 from GCS, no local copy; GPU nodes have internet).",
+    )
+    parser.add_argument(
+        "--out-root", type=str, default=None,
+        help="Override config.OUT_ROOT for the station forecast zarrs.",
+    )
+    parser.add_argument(
+        "--raw-root", type=str, default=None,
+        help="Directory for the short-lived global raw zarrs (default: under out-root).",
+    )
+    parser.add_argument(
+        "--part", type=int, default=0,
+        help="Process only block PART (0-based) of NPARTS contiguous week blocks per year.",
+    )
+    parser.add_argument("--nparts", type=int, default=1, help="Number of week blocks per year.")
     return parser.parse_args()
 
 
@@ -121,14 +139,16 @@ def main() -> None:
 
     from forecasting import load_data_source, load_model, run_forecasts
 
-    data               = load_data_source(args.era5_dir)
+    data               = load_data_source(args.era5_dir, source=args.data_source)
     model, model_label = load_model(args.model, args.package_path)
 
     for year in years:
         run_forecasts(model, model_label, data, year,
                       nsteps=nsteps, overwrite=args.overwrite,
                       daily_only=daily_only, out_tag=out_tag,
-                      extraction=args.extraction, save_uv=args.save_uv)
+                      extraction=args.extraction, save_uv=args.save_uv,
+                      out_root=args.out_root, raw_root=args.raw_root,
+                      part=args.part, nparts=args.nparts)
 
 
 
