@@ -86,7 +86,7 @@ footer{padding:32px 0 48px;color:var(--muted);font-size:14px}
     <div class="card"><div class="num">1.1 M</div><div class="lbl">aligned forecast–observation pairs (forecast, ERA5, obs by valid time)</div></div>
     <div class="card"><div class="num">3</div><div class="lbl">systems compared: <span class="dot" style="background:var(--fcn3)"></span>FCN3, <span class="dot" style="background:var(--gc)"></span>GraphCast, <span class="dot" style="background:var(--hres)"></span>HRES</div></div>
   </div>
-  <p>FCN3 and GraphCast are run through <a href="https://github.com/NVIDIA/earth2studio">Earth2Studio</a> with pretrained weights, initialised from ERA5. HRES forecasts come from the WeatherBench2 archive. Gridded 10&nbsp;m wind speed is bilinearly interpolated to each station. The years 2010–2017 fall inside the models' training periods and 2018–2022 fall after them, which lets us test whether skill drops on years the models never saw.</p>
+  <p>FCN3 and GraphCast are run through <a href="https://github.com/NVIDIA/earth2studio">Earth2Studio</a> with pretrained weights, initialised from ERA5. HRES forecasts come from the WeatherBench2 archive. Gridded 10&nbsp;m wind speed is bilinearly interpolated to each station. The years 2016–2017 fall inside the models' training periods and 2018–2022 fall after them, which lets us test whether skill drops on years the models never saw.</p>
   <figure>
     <img src="assets/station_map.png" alt="Map of Northern Norway showing 12 stations coloured by terrain group: fjord, marine coast, coastal ridge and valley." loading="lazy">
     <figcaption>The 12 evaluation stations, grouped by terrain: fjord, marine coast, coastal ridge and valley.</figcaption>
@@ -142,8 +142,8 @@ footer{padding:32px 0 48px;color:var(--muted);font-size:14px}
   </div>
   <p>Both AI models were trained on ERA5, so they score well against ERA5. Against independent station observations, the advantage disappears. ACC uses the WeatherBench2 formula with an independent climatology: station observations from 2023–2025, or WeatherBench2's ERA5 climatology for 1990–2017.</p>
 
-  <h3>4. No drop in skill after the training period</h3>
-  <p>We compared the training years with the years after training (2018–2022). For both models, the change in RMSE and ACC is not significant. For example, the change in ACC is −0.003 for FCN3 (95% CI [−0.014, 0.009]) and +0.010 for GraphCast (95% CI [−0.002, 0.024]). The result holds when each model's own training cutoff is used.</p>
+  <h3>4. Skill holds beyond the training period</h3>
+  <p>2016 and 2017 fall inside the training data of both AI models; 2018–2022 fall after it. FCN3 and GraphCast stay comparable to HRES across all seven years (right panel of the RMSE figure above). Their yearly RMSE rises and falls together with HRES, so the year-to-year changes reflect how hard each year's weather was, not a loss of skill on unseen years.</p>
 
   <h3>5. Inference cost</h3>
   <p>Inference time on a single GPU, averaged over three initialisations for each forecast length:</p>
