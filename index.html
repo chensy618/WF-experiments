@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WF-experiments — AI Weather Models for Station Wind in Northern Norway</title>
+<meta name="description" content="Evaluation of FourCastNet3 and GraphCast against ECMWF HRES and ERA5 for 10 m wind at 12 Arctic coastal stations in Northern Norway, 2016–2022.">
+<style>
+:root{
+  --bg:#ffffff; --surface:#f6f7f9; --text:#1b1f24; --muted:#5b6470; --border:#e2e5ea;
+  --accent:#1f6feb; --fcn3:#2196f3; --gc:#4caf50; --hres:#ff9800;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1216; --surface:#171b21; --text:#e6e9ee; --muted:#9aa4b2; --border:#2a3038; --accent:#58a6ff;
+  }
+}
+:root[data-theme="dark"]{--bg:#0f1216; --surface:#171b21; --text:#e6e9ee; --muted:#9aa4b2; --border:#2a3038; --accent:#58a6ff;}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent)}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+header{padding:56px 0 32px;border-bottom:1px solid var(--border)}
+.eyebrow{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+h1{font-size:clamp(26px,4.5vw,40px);line-height:1.2;margin:0 0 16px;letter-spacing:-.01em}
+.lede{font-size:18px;color:var(--muted);max-width:760px;margin:0 0 24px}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btn{display:inline-block;padding:9px 16px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface);color:var(--text);text-decoration:none;font-weight:600;font-size:14px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+section{padding:40px 0;border-bottom:1px solid var(--border)}
+h2{font-size:24px;margin:0 0 16px}
+h3{font-size:17px;margin:24px 0 8px}
+p{margin:0 0 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:20px 0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.card .num{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.card .lbl{font-size:14px;color:var(--muted)}
+figure{margin:24px 0}
+figure img{width:100%;height:auto;display:block;border-radius:8px;border:1px solid var(--border);background:#fff}
+figcaption{font-size:14px;color:var(--muted);margin-top:8px}
+.tbl{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+ul{padding-left:20px;margin:0 0 14px}
+li{margin-bottom:6px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;
+  background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+pre{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto;font-size:13px;line-height:1.5}
+pre code{background:none;border:0;padding:0}
+footer{padding:32px 0 48px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <p class="eyebrow">Experiment repository</p>
+    <h1>How well do AI weather models forecast station wind in Arctic Norway?</h1>
+    <p class="lede">We compare two machine-learning global forecast models, NVIDIA FourCastNet3 and Google DeepMind GraphCast, with ECMWF's physics-based HRES. All three are scored against hourly 10&nbsp;m wind observations at 12 stations along the coast and fjords of Northern Norway, for lead times of 6 to 72 hours across seven years (2016–2022).</p>
+    <div class="btns">
+      <a class="btn primary" href="https://github.com/chensy618/WF-experiments">View code on GitHub</a>
+      <a class="btn" href="https://github.com/chensy618/WF-experiments/tree/main/experiments/notebooks">Analysis notebooks</a>
+      <a class="btn" href="#reproduce">Reproduce</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="setup">
+  <h2>Setup</h2>
+  <div class="grid">
+    <div class="card"><div class="num">12</div><div class="lbl">MET Norway stations in Troms, Nordland and Finnmark, each in its own 0.25° grid cell</div></div>
+    <div class="card"><div class="num">2,557</div><div class="lbl">daily 00 UTC forecasts per model (2016–2022), 6-hourly steps out to +72&nbsp;h</div></div>
+    <div class="card"><div class="num">1.1 M</div><div class="lbl">aligned forecast–observation pairs (forecast, ERA5, obs by valid time)</div></div>
+    <div class="card"><div class="num">3</div><div class="lbl">systems compared: <span class="dot" style="background:var(--fcn3)"></span>FCN3, <span class="dot" style="background:var(--gc)"></span>GraphCast, <span class="dot" style="background:var(--hres)"></span>HRES</div></div>
+  </div>
+  <p>FCN3 and GraphCast are run through <a href="https://github.com/NVIDIA/earth2studio">Earth2Studio</a> with pretrained weights, initialised from ERA5. HRES forecasts come from the WeatherBench2 archive. Gridded 10&nbsp;m wind speed is bilinearly interpolated to each station. The years 2010–2017 fall inside the models' training periods and 2018–2022 fall after them, which lets us test whether skill drops on years the models never saw.</p>
+  <figure>
+    <img src="assets/station_map.png" alt="Map of Northern Norway showing 12 stations coloured by terrain group: fjord, marine coast, coastal ridge and valley." loading="lazy">
+    <figcaption>The 12 evaluation stations, grouped by terrain: fjord, marine coast, coastal ridge and valley.</figcaption>
+  </figure>
+</section>
+
+<section id="results">
+  <h2>Key findings</h2>
+
+  <h3>1. Overall skill: HRES is slightly ahead, and all three are close</h3>
+  <p>Averaged over all stations, lead times and years, HRES has the lowest RMSE. FCN3 is 0.073&nbsp;m/s worse than HRES, and GraphCast sits between the two. These gaps are small next to an RMSE of about 2.7–3.2&nbsp;m/s. The ranking holds under temporal block bootstraps (block lengths of 1–14 days) and under Wilcoxon tests on non-overlapping weeks.</p>
+  <figure>
+    <img src="assets/combined_leadtime_station_annual_PAPER.png" alt="Three panels: RMSE versus lead time, RMSE per station grouped by terrain, and RMSE per year for FCN3, GraphCast and HRES." loading="lazy">
+    <figcaption>(a) RMSE against lead time; the shading shows the spread across stations. (b) RMSE per station, grouped by terrain. (c) RMSE per year, 2016–2022.</figcaption>
+  </figure>
+
+  <h3>2. High winds: FCN3 has the lowest error, but every model underpredicts</h3>
+  <p>This analysis keeps only events with observed wind of at least 10.8&nbsp;m/s (Beaufort 9 and above): 40,247 records, about 11% of the data. On that subset, FCN3 has a significantly lower RMSE than both GraphCast and HRES. All three systems still underpredict strong winds by about 5&nbsp;m/s, a known limit of 0.25° global models at exposed coastal sites.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>High-wind subset (obs ≥ 10.8 m/s)</th><th>RMSE (m/s)</th><th>Bias (m/s)</th><th>nBias</th><th>ΔRMSE vs FCN3, 95% CI</th></tr></thead>
+      <tbody>
+        <tr><td><span class="dot" style="background:var(--fcn3)"></span>FCN3</td><td>5.76</td><td>−4.99</td><td>−37.6%</td><td>—</td></tr>
+        <tr><td><span class="dot" style="background:var(--gc)"></span>GraphCast</td><td>6.00</td><td>−5.44</td><td>−40.9%</td><td>+0.24 [0.20, 0.29]</td></tr>
+        <tr><td><span class="dot" style="background:var(--hres)"></span>HRES</td><td>6.05</td><td>−5.51</td><td>−41.6%</td><td>+0.28 [0.22, 0.34]</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">Values are means over the 12 stations; confidence intervals come from a 7-day temporal block bootstrap with 10,000 resamples.</p>
+  <figure>
+    <img src="assets/ets_by_beaufort_category.png" alt="Bar chart of equitable threat score by Beaufort force for each model." loading="lazy">
+    <figcaption>Equitable threat score (ETS) by observed Beaufort force. FCN3 leads for forces 5–8; HRES leads in light winds.</figcaption>
+  </figure>
+  <figure>
+    <img src="assets/case_study_highwind_zoom.png" alt="Time series of observed and forecast wind around the peak wind event at four stations." loading="lazy">
+    <figcaption>±7 days around the strongest observed event at four stations, at +24&nbsp;h lead. At Fakken, an exposed ridge site, every model misses the storm-force peak.</figcaption>
+  </figure>
+
+  <h3>3. Anomaly correlation depends on the reference</h3>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Mean ACC, +6 h to +72 h</th><th>vs station obs</th><th>vs ERA5</th></tr></thead>
+      <tbody>
+        <tr><td><span class="dot" style="background:var(--fcn3)"></span>FCN3</td><td>0.550</td><td>0.836</td></tr>
+        <tr><td><span class="dot" style="background:var(--gc)"></span>GraphCast</td><td>0.565</td><td>0.861</td></tr>
+        <tr><td><span class="dot" style="background:var(--hres)"></span>HRES</td><td>0.565</td><td>0.824</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Both AI models were trained on ERA5, so they score well against ERA5. Against independent station observations, the advantage disappears. ACC uses the WeatherBench2 formula with an independent climatology: station observations from 2023–2025, or WeatherBench2's ERA5 climatology for 1990–2017.</p>
+
+  <h3>4. No drop in skill after the training period</h3>
+  <p>We compared the training years with the years after training (2018–2022). For both models, the change in RMSE and ACC is not significant. For example, the change in ACC is −0.003 for FCN3 (95% CI [−0.014, 0.009]) and +0.010 for GraphCast (95% CI [−0.002, 0.024]). The result holds when each model's own training cutoff is used.</p>
+
+  <h3>5. Inference cost</h3>
+  <p>On one NVIDIA GH200, a 72-hour forecast takes about <b>90&nbsp;s</b> with FCN3 (peak GPU memory 52.7&nbsp;GB) and <b>140&nbsp;s</b> with GraphCast (38&nbsp;GB). These are means over 2,557 initialisations per model. Most of that time is fixed start-up overhead; each extra 6-hour step adds only about 2–3&nbsp;s.</p>
+</section>
+
+<section id="methods">
+  <h2>Evaluation protocol</h2>
+  <ul>
+    <li><b>Metrics:</b> RMSE, MAE, bias, nRMSE and nBias (normalised by the mean observation), Pearson correlation, ACC, and ETS by Beaufort category.</li>
+    <li><b>Aggregation:</b> metrics are computed per station and lead time, then averaged with equal weight for each station.</li>
+    <li><b>Significance testing:</b> forecast errors are paired and correlated in space and time, so naive tests would overstate significance. We use three tests:
+      <ul>
+        <li>a station-cluster bootstrap (10,000 resamples), plus an exact sign-flip test over all 2<sup>12</sup> patterns;</li>
+        <li>a temporal block bootstrap that resamples calendar days and keeps all stations and lead times together, with sensitivity checks at 1, 3, 7 and 14 days;</li>
+        <li>a paired Wilcoxon signed-rank test on non-overlapping 7-day blocks.</li>
+      </ul>
+    </li>
+    <li><b>Same samples for every model:</b> high-wind and categorical scores use only times where FCN3, GraphCast, HRES and an observation are all available.</li>
+  </ul>
+</section>
+
+<section id="reproduce">
+  <h2>Reproduce</h2>
+  <p>The experiment code lives under <code>experiments/</code> in a fork of NVIDIA Earth2Studio:</p>
+<pre><code>experiments/
+├── scripts/
+│   ├── nldl-src/          # forecasting, ERA5 streaming, case-study driver, cost benchmark
+│   ├── download_wind_obs_northern_norway.py
+│   ├── download_era5_6h.py, download_hres_forecast_wb2.py, ...
+├── jobs/                  # SLURM scripts (FCN3 / GraphCast runs, data downloads)
+├── notebooks/             # metrics, significance tests, figures
+└── outputs/wind_obs/      # station observations (MET Norway Frost API)</code></pre>
+  <ol>
+    <li>Download ERA5 (6-hourly), the HRES forecasts (WeatherBench2) and the station observations with the scripts in <code>experiments/scripts/</code>.</li>
+    <li>Run the forecasts: <code>sbatch experiments/jobs/run_case_study_fcn3_72h_interp.slurm</code> and <code>..._graphcast_72h_interp.slurm</code>. Each is an array job with one task per year.</li>
+    <li>Compute the metrics and figures in <code>experiments/notebooks/model_comparison_analysis_72h_interpolate.ipynb</code>; the significance tests are in <code>rebuttal_significance_tests.ipynb</code>.</li>
+  </ol>
+  <p>Step-by-step instructions are in <a href="https://github.com/chensy618/WF-experiments/blob/main/experiments/scripts/nldl-src/instruction.md"><code>nldl-src/instruction.md</code></a>.</p>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Built on <a href="https://github.com/NVIDIA/earth2studio">NVIDIA Earth2Studio</a> (Apache-2.0). Model weights and datasets keep their providers' licences: FourCastNet3 (NVIDIA), GraphCast (Google DeepMind), HRES and ERA5 (ECMWF / Copernicus), and station data (MET Norway).
+  </div>
+</footer>
+</body>
+</html>
