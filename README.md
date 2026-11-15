@@ -26,9 +26,11 @@ which is used to run the AI models. All experiment code lives under
 [`experiments/`](experiments).
 
 <p align="center">
-  <img src="https://chensy618.github.io/WF-experiments/assets/combined_leadtime_station_annual_PAPER.png" alt="RMSE by lead time, station and year" width="640">
+  <img src="https://chensy618.github.io/WF-experiments/assets/panel_a_leadtime_sem.png" alt="RMSE against lead time" width="32%">
+  <img src="https://chensy618.github.io/WF-experiments/assets/panel_b_station_differences.png" alt="RMSE per station" width="32%">
+  <img src="https://chensy618.github.io/WF-experiments/assets/panel_c_annual_performance.png" alt="RMSE per year" width="32%">
   <br>
-  <em>(a) RMSE against lead time; the shading shows the spread across stations. (b) RMSE per station, grouped by terrain. (c) RMSE per year.</em>
+  <em>Left: RMSE against lead time (±1 standard error). Middle: RMSE per station, grouped by terrain. Right: RMSE per year.</em>
 </p>
 
 ## Key findings
