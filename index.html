@@ -41,6 +41,7 @@ p{margin:0 0 14px}
 figure{margin:24px 0}
 figure img{width:100%;height:auto;display:block;border-radius:8px;border:1px solid var(--border);background:#fff}
 figcaption{font-size:14px;color:var(--muted);margin-top:8px}
+figure.narrow{max-width:680px;margin-left:auto;margin-right:auto}
 .tbl{overflow-x:auto;margin:16px 0}
 table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
 th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
@@ -96,7 +97,7 @@ footer{padding:32px 0 48px;color:var(--muted);font-size:14px}
 
   <h3>1. Overall skill: HRES is slightly ahead, and all three are close</h3>
   <p>Averaged over all stations, lead times and years, HRES has the lowest RMSE. FCN3 is 0.073&nbsp;m/s worse than HRES, and GraphCast sits between the two. These gaps are small next to an RMSE of about 2.7–3.2&nbsp;m/s. The ranking holds under temporal block bootstraps with block lengths of 1–14 days.</p>
-  <figure>
+  <figure class="narrow">
     <img src="assets/combined_leadtime_station_annual_PAPER.png" alt="Three panels: RMSE versus lead time, RMSE per station grouped by terrain, and RMSE per year for FCN3, GraphCast and HRES." loading="lazy">
     <figcaption>(a) RMSE against lead time; the shading shows the spread across stations. (b) RMSE per station, grouped by terrain. (c) RMSE per year, 2016–2022.</figcaption>
   </figure>
