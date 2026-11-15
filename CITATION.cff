@@ -1,8 +1,45 @@
 cff-version: 1.2.0
-message: If you use this software, please cite it as below.
-title: NVIDIA Earth2Studio
+message: If you use this code or results, please cite the paper below.
+title: WF-experiments
+type: software
+repository-code: https://github.com/chensy618/WF-experiments
+url: https://chensy618.github.io/WF-experiments/
+license: Apache-2.0
 authors:
-  - name: "Earth2Studio Contributors"
-url: https://github.com/NVIDIA/earth2studio
-repository-code: https://github.com/NVIDIA/earth2studio
-date-released: 2024-04-22
+  - given-names: Siyan
+    family-names: Chen
+preferred-citation:
+  type: article
+  title: A Station-Based Evaluation of Machine Learning-based Weather Forecasting Models in Northern Norway
+  authors:
+    - given-names: Siyan
+      family-names: Chen
+    - given-names: Lars
+      family-names: Uebbing
+    - given-names: Eirik Mikal
+      family-names: Samuelsen
+    - given-names: Georgios
+      family-names: Leontidis
+    - given-names: Arnt-Børre
+      family-names: Salberg
+    - given-names: Sébastien
+      family-names: Lefèvre
+    - given-names: Robert
+      family-names: Jenssen
+    - given-names: Kristoffer
+      family-names: Wickstrøm
+  year: 2026
+  journal: arXiv preprint
+  identifiers:
+    - type: other
+      value: "arXiv:2609.10564"
+  doi: 10.48550/arXiv.2609.10564
+  url: https://arxiv.org/abs/2609.10564
+references:
+  - type: software
+    title: NVIDIA Earth2Studio
+    authors:
+      - name: Earth2Studio Contributors
+    url: https://github.com/NVIDIA/earth2studio
+    repository-code: https://github.com/NVIDIA/earth2studio
+    date-released: 2024-04-22

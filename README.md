@@ -3,8 +3,11 @@
 
 # WF-experiments
 
-**How well do AI weather models forecast station wind in Arctic Norway?**
+**A Station-Based Evaluation of Machine Learning-based Weather Forecasting Models in Northern Norway**
 
+Siyan Chen, Lars Uebbing, Eirik Mikal Samuelsen, Georgios Leontidis, Arnt-Børre Salberg, Sébastien Lefèvre, Robert Jenssen, Kristoffer Wickstrøm
+
+[Paper (arXiv)](https://arxiv.org/abs/2609.10564) |
 [Project page](https://chensy618.github.io/WF-experiments/) |
 [Notebooks](experiments/notebooks) |
 [Scripts](experiments/scripts) |
@@ -89,6 +92,22 @@ earth2studio/              # upstream Earth2Studio package
 
 Step-by-step instructions are in
 [`experiments/scripts/nldl-src/instruction.md`](experiments/scripts/nldl-src/instruction.md).
+
+## Citation
+
+If you use this code or results, please cite:
+
+```bibtex
+@misc{chen2026station,
+  title         = {A Station-Based Evaluation of Machine Learning-based Weather Forecasting Models in Northern Norway},
+  author        = {Chen, Siyan and Uebbing, Lars and Samuelsen, Eirik Mikal and Leontidis, Georgios and Salberg, Arnt-B{\o}rre and Lef{\`e}vre, S{\'e}bastien and Jenssen, Robert and Wickstr{\o}m, Kristoffer},
+  year          = {2026},
+  eprint        = {2609.10564},
+  archivePrefix = {arXiv},
+  primaryClass  = {physics.ao-ph},
+  url           = {https://arxiv.org/abs/2609.10564}
+}
+```
 
 ## Acknowledgements and license
 
