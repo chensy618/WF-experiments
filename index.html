@@ -41,7 +41,8 @@ p{margin:0 0 14px}
 figure{margin:24px 0}
 figure img{width:100%;height:auto;display:block;border-radius:8px;border:1px solid var(--border);background:#fff}
 figcaption{font-size:14px;color:var(--muted);margin-top:8px}
-figure.narrow{max-width:680px;margin-left:auto;margin-right:auto}
+.panels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:640px){.panels{grid-template-columns:1fr}}
 .tbl{overflow-x:auto;margin:16px 0}
 table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
 th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
@@ -97,9 +98,13 @@ footer{padding:32px 0 48px;color:var(--muted);font-size:14px}
 
   <h3>1. Overall skill: HRES is slightly ahead, and all three are close</h3>
   <p>Averaged over all stations, lead times and years, HRES has the lowest RMSE. FCN3 is 0.073&nbsp;m/s worse than HRES, and GraphCast sits between the two. These gaps are small next to an RMSE of about 2.7–3.2&nbsp;m/s. The ranking holds under temporal block bootstraps with block lengths of 1–14 days.</p>
-  <figure class="narrow">
-    <img src="assets/combined_leadtime_station_annual_PAPER.png" alt="Three panels: RMSE versus lead time, RMSE per station grouped by terrain, and RMSE per year for FCN3, GraphCast and HRES." loading="lazy">
-    <figcaption>(a) RMSE against lead time; the shading shows the spread across stations. (b) RMSE per station, grouped by terrain. (c) RMSE per year, 2016–2022.</figcaption>
+  <figure>
+    <div class="panels">
+      <img src="assets/panel_a_leadtime_sem.png" alt="Mean RMSE against lead time from +6 to +72 hours for FCN3, GraphCast and HRES, with ±1 standard error bands." loading="lazy">
+      <img src="assets/panel_b_station_differences.png" alt="RMSE per station for each model, grouped by terrain type." loading="lazy">
+      <img src="assets/panel_c_annual_performance.png" alt="RMSE per year from 2016 to 2022 for each model." loading="lazy">
+    </div>
+    <figcaption>Left: mean RMSE against lead time, with ±1 standard error bands. Middle: RMSE per station, grouped by terrain. Right: RMSE per year. All scores use station observations as the reference, 2016–2022.</figcaption>
   </figure>
 
   <h3>2. High winds: FCN3 has the lowest error, but every model underpredicts</h3>
