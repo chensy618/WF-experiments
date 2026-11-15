@@ -25,10 +25,11 @@ The repository is a fork of [NVIDIA Earth2Studio](https://github.com/NVIDIA/eart
 which is used to run the AI models. All experiment code lives under
 [`experiments/`](experiments).
 
-![RMSE by lead time, station and year](https://chensy618.github.io/WF-experiments/assets/combined_leadtime_station_annual_PAPER.png)
-
-*(a) RMSE against lead time; the shading shows the spread across stations. (b) RMSE per
-station, grouped by terrain. (c) RMSE per year.*
+<p align="center">
+  <img src="https://chensy618.github.io/WF-experiments/assets/combined_leadtime_station_annual_PAPER.png" alt="RMSE by lead time, station and year" width="640">
+  <br>
+  <em>(a) RMSE against lead time; the shading shows the spread across stations. (b) RMSE per station, grouped by terrain. (c) RMSE per year.</em>
+</p>
 
 ## Key findings
 
