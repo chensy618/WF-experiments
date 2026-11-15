@@ -62,10 +62,14 @@ footer{padding:32px 0 48px;color:var(--muted);font-size:14px}
     <p class="eyebrow">Experiment repository</p>
     <h1>How well do AI weather models forecast station wind in Arctic Norway?</h1>
     <p class="lede">We compare two machine-learning global forecast models, NVIDIA FourCastNet3 and Google DeepMind GraphCast, with ECMWF's physics-based HRES. All three are scored against hourly 10&nbsp;m wind observations at 12 stations along the coast and fjords of Northern Norway, for lead times of 6 to 72 hours across seven years (2016–2022).</p>
+    <p style="margin:0 0 6px"><b>Paper:</b> A Station-Based Evaluation of Machine Learning-based Weather Forecasting Models in Northern Norway</p>
+    <p style="margin:0 0 24px;color:var(--muted);font-size:15px">Siyan Chen, Lars Uebbing, Eirik Mikal Samuelsen, Georgios Leontidis, Arnt-Børre Salberg, Sébastien Lefèvre, Robert Jenssen, Kristoffer Wickstrøm</p>
     <div class="btns">
-      <a class="btn primary" href="https://github.com/chensy618/WF-experiments">View code on GitHub</a>
+      <a class="btn primary" href="https://arxiv.org/abs/2609.10564">Paper (arXiv)</a>
+      <a class="btn" href="https://github.com/chensy618/WF-experiments">View code on GitHub</a>
       <a class="btn" href="https://github.com/chensy618/WF-experiments/tree/main/experiments/notebooks">Analysis notebooks</a>
       <a class="btn" href="#reproduce">Reproduce</a>
+      <a class="btn" href="#citation">Cite</a>
     </div>
   </div>
 </header>
@@ -181,6 +185,20 @@ footer{padding:32px 0 48px;color:var(--muted);font-size:14px}
     <li>Compute the metrics and figures in <code>experiments/notebooks/model_comparison_analysis_72h_interpolate.ipynb</code>; the significance tests are in <code>rebuttal_significance_tests.ipynb</code>.</li>
   </ol>
   <p>Step-by-step instructions are in <a href="https://github.com/chensy618/WF-experiments/blob/main/experiments/scripts/nldl-src/instruction.md"><code>nldl-src/instruction.md</code></a>.</p>
+</section>
+
+<section id="citation">
+  <h2>Citation</h2>
+  <p>If you use this code or results, please cite:</p>
+<pre><code>@misc{chen2026station,
+  title         = {A Station-Based Evaluation of Machine Learning-based Weather Forecasting Models in Northern Norway},
+  author        = {Chen, Siyan and Uebbing, Lars and Samuelsen, Eirik Mikal and Leontidis, Georgios and Salberg, Arnt-B{\o}rre and Lef{\`e}vre, S{\'e}bastien and Jenssen, Robert and Wickstr{\o}m, Kristoffer},
+  year          = {2026},
+  eprint        = {2609.10564},
+  archivePrefix = {arXiv},
+  primaryClass  = {physics.ao-ph},
+  url           = {https://arxiv.org/abs/2609.10564}
+}</code></pre>
 </section>
 
 </main>
