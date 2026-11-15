@@ -19,7 +19,7 @@ This repository evaluates two machine-learning global forecast models, NVIDIA
 **FourCastNet3 (FCN3)** and Google DeepMind **GraphCast**, against ECMWF's physics-based
 **HRES** forecast. All three are scored against hourly 10 m wind observations at
 **12 MET Norway stations** in Troms, Nordland and Finnmark. The evaluation covers lead
-times from **+6 h to +72 h** over **2016–2022**, with an extension back to 2010–2015.
+times from **+6 h to +72 h** over **2016–2022**.
 
 The repository is a fork of [NVIDIA Earth2Studio](https://github.com/NVIDIA/earth2studio),
 which is used to run the AI models. All experiment code lives under
@@ -52,8 +52,8 @@ which is used to run the AI models. All experiment code lives under
 - **ACC depends on the reference:** both AI models were trained on ERA5. Their lead in
   ACC against ERA5 disappears when they are scored against independent station
   observations.
-- **No drop in skill after training:** the change in RMSE and ACC between the
-  training years and 2018–2022 is not significant for either model.
+- **Beyond the training period:** FCN3 and GraphCast stay comparable to HRES in
+  2018–2022, the years after their training data ends.
 
 Significance is tested with a station-cluster bootstrap and a temporal block bootstrap
 (blocks of 1–14 days). The
